@@ -2,7 +2,7 @@
 const ventas = require('./datos'); //'require' accede a lo que está dentro de module.exports
 
 //tamaño del array
-console.log(${ventas.length});
+console.log(ventas.length);
 
 //elementos
 console.log(ventas[0]);//primer elemento
