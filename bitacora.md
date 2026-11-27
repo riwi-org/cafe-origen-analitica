@@ -61,4 +61,19 @@
 * Claude escribió analitica.js (a partir explorar.js, datos.js) y la bitácora, siguiendo las
   instrucciones y la rúbrica del ejercicio.
 * Las decisiones sobre el arreglo vacío fueron propuestas por Claude y están documentadas.
-* 
+-------------
+
+### Funciones de colecciones
+
+* **Las cinco preguntas:** ¿qué recorro?, ¿qué filtro?, ¿qué transformo?, ¿qué acumulo?, ¿cómo agrupo?
+
+| Función | ¿Qué recorro? | ¿Qué filtro? | ¿Qué transformo? | ¿Qué acumulo? | ¿Cómo agrupo? |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `totalVendidoM` | todas las ventas | nada | valor de cada venta con `valorVenta` | suma con `reduce` (inicial `0`) | no aplica |
+| `unidadesVendidasM` | todas las ventas | nada | nada, usa `cantidad` directo | suma de `cantidad` con `reduce` (inicial `0`) | no aplica |
+| `ventasPorCiudadM` | todas las ventas | ciudad normalizada igual a la buscada | valor de cada venta | suma con `reduce` (inicial `0`) | no aplica |
+| `totalPorCiudad` | todas las ventas | nada | ciudad con formato `"Medellín"` y valor de la venta | suma por ciudad en un objeto con `reduce` (inicial `{}`) | por ciudad (la clave del objeto) |
+| `unidadesPorProducto` | todas las ventas | nada | producto sin espacios sobrantes | suma de `cantidad` por producto | por producto (la clave del objeto) |
+| `topProductosPorValor` | todas las ventas, y luego el resumen por producto | nada | objeto a arreglo `{ producto, valor }` con `Object.entries` y `map` | valor por producto con `reduce`; luego `sort` de mayor a menor y `slice(0, k)` | por producto (la clave del objeto) |
+
+
