@@ -103,3 +103,61 @@
 **Qué no hizo la IA:**
 - No reprodujo los dos errores de la gerente, porque no se describieron. Esa parte queda pendiente.
 - No hizo commit ni push: no tiene acceso al repositorio local en la máquina del estudiante.
+
+
+-------------------------------------------------------------------------------
+## v0.2: medición de operaciones (Big O)
+
+### Predicciones (escritas antes de medir)
+
+Pregunta: si n se multiplica por 10, ¿cuánto se multiplica el número de operaciones de cada función?
+
+| Función | Conteo que espero | Predicción al multiplicar n por 10 |
+|---|---|---|
+| `totalVendido` | 1 operación por visita, n visitas | ×10 |
+| `ventaMayor` | n visitas + n-1 comparaciones, unas 2n | ×10 |
+| `totalPorCiudad` | n visitas + n revisiones de clave, unas 2n | ×10 |
+| `primeraVenta` | 1 acceso, sin importar n | ×1 |
+
+Clasificación que espero: las tres primeras O(n), `primeraVenta` O(1), ninguna O(n²).
+
+### Resultados (`node src/medir.js`)
+
+| n | totalVendido | ventaMayor | totalPorCiudad | primeraVenta |
+|---|---|---|---|---|
+| 100 | 100 | 199 | 200 | 1 |
+| 1.000 | 1.000 | 1.999 | 2.000 | 1 |
+| 10.000 | 10.000 | 19.999 | 20.000 | 1 |
+| 100.000 | 100.000 | 199.999 | 200.000 | 1 |
+
+Al multiplicar n por 10:
+
+| Función | Razón entre operaciones | Predicción | ¿Coincide? |
+|---|---|---|---|
+| `totalVendido` | 10.00 | ×10 | sí |
+| `ventaMayor` | 10.05 y luego 10.00 | ×10 | sí |
+| `totalPorCiudad` | 10.00 | ×10 | sí |
+| `primeraVenta` | 1.00 | ×1 | sí |
+
+### Clasificación Big O
+
+- **`totalVendido`: O(n).** Hay una visita por elemento y no hay ciclos anidados. Cuenta exactamente n operaciones.
+- **`ventaMayor`: O(n).** Hay n visitas y n-1 comparaciones, es decir 2n-1 operaciones. La constante 2 no cambia la clase.
+- **`totalPorCiudad`: O(n).** Hay n visitas y n revisiones de clave en el objeto. Suponemos que buscar una clave en el objeto cuesta O(1), así que el total es 2n.
+- **`primeraVenta`: O(1).** Accede a una posición fija sin recorrer el arreglo. Siempre cuenta 1, sin importar n.
+- **Ninguna función es O(n²).** Ninguna tiene ciclos anidados sobre `ventas`, y la razón entre tamaños consecutivos es 10, no 100.
+
+**Limitaciones de la medición:** contamos operaciones lógicas, no tiempo de ejecución. El tiempo real puede variar por memoria o por cómo el motor optimiza el código. Además, el conteo de `totalPorCiudad` supone que la búsqueda en objeto es O(1), lo cual es lo habitual pero no está garantizado en todos los casos.
+
+### Uso de IA en v0.2
+
+**Qué generó Claude:**
+- `src/generador.js`: `generarVentas(n)` con listas fijas de productos y ciudades, y elección al azar de cliente, cantidad y fecha.
+- `src/instrumentadas.js`: versiones instrumentadas de `totalVendido`, `ventaMayor`, `totalPorCiudad` y `primeraVenta`, con un contador pasado por referencia.
+- `src/medir.js`: ejecución para los cuatro tamaños, tablas de operaciones y de crecimiento.
+- Las predicciones de esta sección las escribió Claude antes de ejecutar `medir.js`.
+- Esta sección de la bitácora.
+
+**Qué decidió el estudiante (o hay que confirmar):**
+- Qué cuenta como "operación" (visita, comparación, revisión de clave).
+- Que los datos de prueba sean aleatorios pero con la misma estructura que el Día 1.
