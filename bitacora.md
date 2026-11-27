@@ -77,3 +77,29 @@
 | `topProductosPorValor` | todas las ventas, y luego el resumen por producto | nada | objeto a arreglo `{ producto, valor }` con `Object.entries` y `map` | valor por producto con `reduce`; luego `sort` de mayor a menor y `slice(0, k)` | por producto (la clave del objeto) |
 
 
+---
+### Reporte de la v0.1
+
+`node src/reporte.js` muestra cuatro secciones más la de ventas por día: resumen general, ventas por ciudad, unidades por producto, top 3 por valor y ventas por día. Los valores en pesos usan `toLocaleString("es-CO")` y se redondean para no mostrar decimales.
+
+- Día con ventas: `2026-09-03` (2 ventas, 5 unidades, $ 187.000).
+- Día sin ventas: `2026-09-07` (mensaje "sin ventas registradas ese día", sin error).
+
+### Uso de IA en esta versión
+
+**Herramienta:** Claude (Anthropic), usado como asistente de programación en el chat.
+
+**Qué generó Claude en v0.1:**
+- `src/reporte.js`: estructura de las cinco secciones, formato de pesos y alineación.
+- `analitica.js`: función `ventasDelDia`, agregada a las exportaciones.
+- `README.md`: descripción, estructura, requisitos, cómo ejecutar y preguntas que responde.
+- Esta bitácora: tablas de funciones y estructura de los apartados de errores.
+- Verificación: ejecución de `node src/reporte.js` para revisar que no aparezcan `NaN` ni `undefined`.
+
+**Qué decidió el estudiante (o hay que confirmar):**
+- Los dos días de ejemplo (`2026-09-03` con ventas y `2026-09-07` sin ventas).
+- Los criterios de orden (mayor a menor) y el número de productos del top (3).
+
+**Qué no hizo la IA:**
+- No reprodujo los dos errores de la gerente, porque no se describieron. Esa parte queda pendiente.
+- No hizo commit ni push: no tiene acceso al repositorio local en la máquina del estudiante.

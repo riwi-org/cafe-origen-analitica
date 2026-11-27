@@ -124,6 +124,11 @@ function topProductosPorValor(ventas, k) {
         .sort((a, b) => b.valor - a.valor) //de mayor a menor
         .slice(0, k); //solo los primeros k
 }
+//devuelve las ventas de una fecha exacta, formato "2026-09-03"
+function ventasDelDia(ventas, fecha) {
+    const buscada = fecha.trim();
+    return ventas.filter(venta => venta.fecha.trim() === buscada); //si no hay ventas devuelve []
+}
 
 //exportamos las funciones
 module.exports = {
@@ -138,5 +143,6 @@ module.exports = {
     ventasPorCiudadM,
     totalPorCiudad,
     unidadesPorProducto,
-    topProductosPorValor
+    topProductosPorValor,
+    ventasDelDia
 };
