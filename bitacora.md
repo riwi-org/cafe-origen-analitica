@@ -280,3 +280,94 @@ La corrección es revisar cada venta una sola vez y llevar un registro de los cl
 - Los tamaños de la tabla (1.000 a 16.000).
 - El control con 8 clientes para separar el efecto de `n`.
 - La regla de ejecutar 100.000 solo si la estimación es menor a 2 minutos.
+
+---
+
+### Comprobación de resultados (10.000 ventas del generador)
+
+| ciudad | encadenada | una pasada | ¿igual? |
+|---|---|---|---|
+| Medellín | 505.535.000 | 505.535.000 | OK |
+| Bogotá | 477.524.000 | 477.524.000 | OK |
+| Cali | 500.929.000 | 500.929.000 | OK |
+| Pereira | 509.539.000 | 509.539.000 | OK |
+
+### Recorridos y arreglos intermedios
+
+**Versión encadenada** (`map` → `filter` → `map` → `reduce`), con 10.000 ventas y `m = 2.439` ventas de Bogotá:
+
+| paso | recorre | arreglo nuevo |
+|---|---|---|
+| `map` (normaliza) | 10.000 | 10.000 |
+| `filter` (ciudad) | 10.000 | 2.439 |
+| `map` (valor) | 2.439 | 2.439 |
+| `reduce` (suma) | 2.439 | 0 |
+
+- Recorridos completos: **4 pasadas** en total. Dos sobre los `n` datos originales y dos sobre el arreglo filtrado de tamaño `m`.
+- Arreglos nuevos: **3** (tamaños `n`, `m` y `m`).
+- Tiempo: `n + n + m + m`, y como `m ≤ n`, el peor caso es `4n`. Es **O(n)** en tiempo.
+- Espacio auxiliar: `n + m + m`, con peor caso `3n`. Es **O(n)** en espacio.
+
+**Versión de una pasada** (`for...of` con acumulador):
+
+- Recorridos completos: **1** (las 10.000 visitas).
+- Arreglos nuevos: **0**. Solo usa dos variables (`buscada` y `total`).
+- Tiempo: **O(n)**.
+- Espacio auxiliar: **O(1)**.
+
+### Por qué `O(4n)` se simplifica a `O(n)`
+
+Big O describe cómo crece el tiempo cuando `n` se hace muy grande. El factor 4 es una constante: no depende de `n`, depende de cuántos recorridos escribimos. Si `n` se duplica, el tiempo de la versión encadenada se duplica, igual que el de la versión de una pasada. Las dos crecen en línea recta, así que las dos son O(n).
+
+La regla de simplificación elimina las constantes multiplicativas (`4n → n`) y los términos de menor grado. Por eso la diferencia de 4 pasadas contra 1 no cambia la clase de complejidad, aunque sí afecte el tiempo real. Lo mismo pasa con `2n + 2m`: como `m ≤ n`, queda `O(n)`.
+
+### Clasificación de complejidad espacial de todas las funciones del motor
+
+| Función | Espacio auxiliar | Razón |
+|---|---|---|
+| `valorVenta` | O(1) | solo calcula un número |
+| `normalizarTexto`, `formatearCiudad` | O(1) | trabajan con un texto corto, no con el arreglo |
+| `totalVendido`, `unidadesVendidas` | O(1) | solo un acumulador |
+| `ventaMayor` | O(1) | guarda una referencia a un registro |
+| `ticketPromedio` | O(1) | dos acumuladores |
+| `ventasPorCiudad` | O(1) | un acumulador |
+| `totalVendidoM`, `unidadesVendidasM` | O(1) | `reduce` no crea arreglo |
+| `ventasPorCiudadM` | O(m) | `filter` crea un arreglo con las ventas de la ciudad; peor caso O(n) |
+| `totalCiudadCadena` | O(n) | tres arreglos intermedios |
+| `totalCiudadUnaPasada` | O(1) | sin arreglos intermedios |
+| `totalPorCiudad` | O(c) | un objeto con una clave por ciudad; `c` es fijo (4), así que en la práctica O(1); peor caso O(n) si cada venta fuera de otra ciudad |
+| `unidadesPorProducto` | O(p) | un objeto con una clave por producto; `p` es fijo (5); peor caso O(n) |
+| `topProductosPorValor` | O(p) | dos objetos y un arreglo `{producto, valor}` de tamaño `p`; el `sort` sobre `p` elementos; peor caso O(n) |
+| `ventasDelDia` | O(d) | `filter` crea un arreglo con las ventas del día; peor caso O(n) |
+| `clientesRecurrentes` | O(r) | arreglo de clientes recurrentes, `r ≤ n` |
+| `primeraVenta` | O(1) | una referencia |
+| `generarVentas(n)` | O(n) | crea los `n` registros, que es la salida misma |
+| funciones instrumentadas (`totalVendidoI`, etc.) | O(1) | solo el contador |
+
+**Puntos a destacar:**
+- `totalPorCiudad` y `topProductosPorValor` guardan resultados en objetos, así que su memoria crece con la cantidad de ciudades o productos distintos, no con `n`. Con los datos actuales es constante, pero si el negocio vendiera en cientos de ciudades, el espacio crecería.
+- `ventasPorCiudadM` tiene el mismo patrón de `filter` que la versión encadenada, pero en menor escala: crea un solo arreglo en lugar de tres.
+
+### Decisión: qué versión queda en el motor
+
+**Se deja `totalCiudadUnaPasada`.**
+
+Argumentos de recursos:
+- Recorre los datos una sola vez y no crea arreglos. Con el historial anual de 100.000 ventas, la versión encadenada crearía del orden de 200.000 registros intermedios para una sola ciudad; la de una pasada no crea ninguno.
+- El costo de una pasada es el mínimo posible: hay que mirar cada venta al menos una vez.
+
+Argumentos de legibilidad:
+- La versión encadenada se lee como una frase (normalizar, filtrar, calcular, sumar), y eso ayuda a entender el flujo.
+- La versión de una pasada usa un ciclo `for...of` y un `if`, que el equipo ya conoce de los MiniRetos. Son pocas líneas y el propósito queda claro con el nombre de la función y el comentario.
+
+Conclusión: la diferencia de legibilidad es pequeña y la de recursos es grande, así que se prefiere la versión de una pasada. La versión encadenada se conserva en `src/totalCiudad.js` como referencia para comparar, pero el reporte no la usa.
+
+
+**Qué generó Claude:**
+- `src/totalCiudad.js`: `totalCiudadCadena` y `totalCiudadUnaPasada`.
+- `src/comprobar_totalCiudad.js`: comparación de resultados con 10.000 ventas y el conteo paso a paso de los arreglos.
+- Las tablas de recorridos y arreglos, la explicación de la simplificación Big O y la clasificación espacial.
+
+**Qué decidió el estudiante (o hay que confirmar):**
+- Qué versión queda en el motor (se recomendó `totalCiudadUnaPasada`).
+- Si `ventasPorCiudadM` se reemplaza por una versión de una pasada o se mantiene como ejemplo.
