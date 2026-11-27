@@ -371,3 +371,114 @@ Conclusión: la diferencia de legibilidad es pequeña y la de recursos es grande
 **Qué decidió el estudiante (o hay que confirmar):**
 - Qué versión queda en el motor (se recomendó `totalCiudadUnaPasada`).
 - Si `ventasPorCiudadM` se reemplaza por una versión de una pasada o se mantiene como ejemplo.
+---
+
+## Clientes recurrentes con Set y Map: método de resolución
+
+### 1. Entender
+
+- **Entradas:** un arreglo de ventas. Cada venta tiene el campo `cliente` (texto, por ejemplo `"C01"`).
+- **Salida:** un arreglo con los clientes que aparecen en 2 o más ventas, sin repetir.
+- **Restricciones:**
+  - El arreglo puede estar vacío.
+  - El orden de la salida no está garantizado; por eso las pruebas comparan resultados ordenados.
+  - No se debe modificar el arreglo `ventas`.
+  - Interesa que escale a 100.000 ventas.
+
+### 2. Ejemplos y casos borde
+
+| Caso | Entrada | Salida esperada |
+|---|---|---|
+| Día 1 | 12 ventas de C01 a C08 | `C01, C02, C03` |
+| Vacío | `[]` | `[]` |
+| Una sola venta | 1 venta | `[]` |
+| Todas del mismo cliente | 12 ventas de `C01` | `[C01]` |
+| Todos distintos | 8 clientes, una compra cada uno | `[]` |
+| Cliente con 3 compras | `C01, C01, C01` | `[C01]` (aparece una sola vez) |
+
+El caso de "cliente con 3 compras" es importante: el cliente debe salir una vez, no tres.
+
+### 3. Fuerza bruta y su complejidad
+
+La versión original compara cada venta con todas las siguientes (ciclo doble) y usa `includes` para no repetir clientes.
+
+- **Tiempo:** O(n²) típico. Son `n(n-1)/2` comparaciones de cliente. Con 10.000 ventas, unas 50 millones.
+- **Peor caso:** O(n³), porque `includes` recorre la lista de recurrentes en cada coincidencia.
+- **Espacio auxiliar:** O(r), con `r` clientes recurrentes.
+
+Esta versión es correcta, pero repite trabajo: cada par se revisa, y cada revisión de "¿ya está en la lista?" recorre la lista.
+
+### 4. Optimizar: la idea
+
+Basta con **una sola pasada** y guardar información para no volver a buscarla:
+
+- Un conjunto de clientes **ya vistos**. Si un cliente ya está ahí, esta es una segunda compra: es recurrente.
+- Un conjunto de **recurrentes**, para no repetir un cliente al agregarlo.
+
+La versión con Map generaliza la idea: guarda el **número de compras** de cada cliente, y los recurrentes son los que tienen 2 o más.
+
+Consulta y escritura en `Set` y `Map` cuestan O(1) en promedio, así que el recorrido completo cuesta O(n).
+
+### 5. Implementar
+
+- `src/recurrentesOptimizadas.js`:
+  - `clientesRecurrentesSet(ventas)`: usa `vistos` y `recurrentes` (dos `Set`).
+  - `comprasPorCliente(ventas)`: devuelve un `Map` de cliente → número de compras.
+  - `clientesRecurrentesMap(ventas)`: toma los clientes del `Map` con 2 o más compras.
+
+### 6. Probar
+
+**Comparación de resultados (ordenados):**
+
+| Caso | Original | Set | Map | ¿Iguales? |
+|---|---|---|---|---|
+| Día 1 | 3 | 3 | 3 | OK |
+| 5.000 ventas generadas | 1.334 | 1.334 | 1.334 | OK |
+| Vacío | 0 | 0 | 0 | OK |
+| Una venta | 0 | 0 | 0 | OK |
+| Un solo cliente | 1 | 1 | 1 | OK |
+
+Además, el `Set` no tiene repetidos en ningún caso. El Día 1 ordenado da `C01, C02, C03` en las tres versiones.
+
+**Tiempos (mediana de 3 repeticiones):**
+
+| n | original (ms) | Set (ms) | Map (ms) |
+|---|---|---|---|
+| 1.000 | 2,87 | 0,13 | 0,17 |
+| 10.000 | 348,79 | 1,39 | 1,51 |
+| 100.000 | no medido (58,4 s en v0.3) | 13,85 | 13,10 |
+
+**Crecimiento al multiplicar `n` por 10:**
+
+| Tramo | Original | Set | Map |
+|---|---|---|---|
+| 1.000 → 10.000 | 121,46 (cuadrático) | 10,31 (lineal) | 9,09 (lineal) |
+| 10.000 → 100.000 | n/a | 9,98 (lineal) | 8,68 (lineal) |
+
+Las versiones nuevas procesan 100.000 ventas en unos 14 ms, muy por debajo del límite de 1 segundo. El crecimiento es de factor 10, es decir, lineal. La original tiene factor 121, es decir, cuadrático.
+
+### Intercambio entre tiempo y memoria
+
+| Versión | Tiempo | Memoria auxiliar |
+|---|---|---|
+| Original | O(n²) típico, O(n³) peor caso | O(r) |
+| Set / Map | O(n) | O(c), con `c` clientes distintos |
+
+- **Lo que se gana:** tiempo. Con 10.000 ventas, la versión nueva es unas 250 veces más rápida.
+- **Lo que se paga:** memoria extra. Los `Set` y el `Map` guardan un elemento por cliente distinto. Con `c` clientes, la memoria crece como O(c).
+- **Peor caso de memoria:** si cada venta es de un cliente distinto, `c = n` y la memoria llega a O(n). En los datos actuales hay unos 1/3 de clientes respecto a las ventas, así que la memoria es moderada.
+- **Por qué vale la pena:** la memoria extra es lineal y pequeña comparada con el tiempo ahorrado. Además, un `Map` con miles de clientes ocupa unos pocos megabytes.
+- **Límite de la afirmación:** el O(1) de `Set` y `Map` es promedio. Con muchas colisiones de clave el peor caso sería peor, pero en la práctica no ocurre con cadenas como `"C01"`.
+
+### Uso de IA en esta entrega
+
+**Qué generó Claude:**
+- `src/recurrentesOptimizadas.js`: `clientesRecurrentesSet`, `comprasPorCliente` y `clientesRecurrentesMap`.
+- `src/verificar_recurrentes.js`: comparación de resultados ordenados con el Día 1, 5.000 ventas y casos borde.
+- `src/medir_recurrentes_versiones.js`: tiempos con medianas y tabla de crecimiento.
+- Esta sección de la bitácora con las seis fases del método.
+
+**Qué decidió el estudiante (o hay que confirmar):**
+- Los tamaños de medición (1.000, 10.000 y 100.000).
+- Medir la original solo hasta 10.000, porque en 100.000 tarda unos 58 segundos.
+- Usar la mediana de tres repeticiones para reducir el ruido.
