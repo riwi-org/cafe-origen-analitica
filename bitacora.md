@@ -161,3 +161,122 @@ Al multiplicar n por 10:
 **Qué decidió el estudiante (o hay que confirmar):**
 - Qué cuenta como "operación" (visita, comparación, revisión de clave).
 - Que los datos de prueba sean aleatorios pero con la misma estructura que el Día 1.
+
+---
+
+Ventas de prueba: `C01, C02, C01, C03, C02`.
+
+| par (i, j) | clientes | ¿igual? | ¿llamada a `includes`? | acción |
+|---|---|---|---|---|
+| (0,1) | C01 vs C02 | no | no | - |
+| (0,2) | C01 vs C01 | sí | sí, lista vacía | agrega C01 |
+| (0,3) | C01 vs C03 | no | no | - |
+| (0,4) | C01 vs C02 | no | no | - |
+| (1,2) | C02 vs C01 | no | no | - |
+| (1,3) | C02 vs C03 | no | no | - |
+| (1,4) | C02 vs C02 | sí | sí, lista [C01] | agrega C02 |
+| (2,3) | C01 vs C03 | no | no | - |
+| (2,4) | C01 vs C02 | no | no | - |
+| (3,4) | C03 vs C02 | no | no | - |
+
+Resultado: 10 comparaciones de cliente, 2 llamadas a `includes`, lista final `[C01, C02]`.
+
+**Generalización:** el ciclo interno hace una comparación por cada par de ventas, es decir `n(n-1)/2`. Con `n = 5` son 10 ✓. Como `n(n-1)/2` crece con `n²`, al duplicar `n` el número de comparaciones se multiplica por cerca de 4.
+
+### Medición (`node src/medir_recurrentes.js`)
+
+Se midió cada tamaño con dos escenarios: datos del generador (clientes entre 1 y n/3) y un control con solo 8 clientes.
+
+**Ejecución 1 (usada para la estimación):**
+
+| n | ms (clientes variables) | ms (8 clientes) |
+|---|---|---|
+| 1.000 | 12,1 | 5,1 |
+| 2.000 | 12,4 | 13,5 |
+| 4.000 | 45,3 | 52,5 |
+| 8.000 | 224,6 | 217,5 |
+| 16.000 | 1.105,8 | 844,6 |
+
+Razón al duplicar `n`:
+
+| n (anterior → actual) | razón (clientes variables) | razón (8 clientes) |
+|---|---|---|
+| 1.000 → 2.000 | 1,02 | 2,65 |
+| 2.000 → 4.000 | 3,65 | 3,89 |
+| 4.000 → 8.000 | 4,96 | 4,14 |
+| 8.000 → 16.000 | 4,92 | 3,88 |
+
+**Ejecución 2 (repetición, solo razones):**
+
+| n (anterior → actual) | razón (clientes variables) | razón (8 clientes) |
+|---|---|---|
+| 1.000 → 2.000 | 2,46 | 2,72 |
+| 2.000 → 4.000 | 3,67 | 3,88 |
+| 4.000 → 8.000 | 5,08 | 3,98 |
+| 8.000 → 16.000 | 6,07 | 4,24 |
+
+**Nota sobre la variación:** las razones cambian entre ejecuciones, sobre todo en los tamaños chicos y en la última duplicación con clientes variables (4,9 en la ejecución 1 y 6,1 en la 2). Los tiempos de milisegundos no son estables, así que las conclusiones se apoyan en el patrón general y no en un número exacto.
+
+### Análisis
+
+- **Con 8 clientes** las razones se quedan cerca de 4 en los tamaños grandes, en las dos ejecuciones. Eso es crecimiento cuadrático, O(n²). La razón de 2,65 o 2,72 en la primera fila es ruido: los tiempos son muy pequeños y el motor todavía está calentando.
+- **Con clientes variables** las razones son mayores que 4 en los tamaños grandes. Eso se explica porque la lista `recurrentes` también crece con `n`: en `n = 16.000` hay 4.260 clientes recurrentes, y cada `includes` recorre más elementos.
+
+### Estimación para 100.000 y 1.000.000 (a partir de la medición)
+
+Base: 1.105,8 ms con `n = 16.000` (clientes variables, ejecución 1).
+
+| N | Estimación cuadrática (exponente 2) | Estimación con exponente medido (2,30, ejecución 1) |
+|---|---|---|
+| 100.000 | 43 s | 75 s |
+| 1.000.000 | 4.320 s (unos 72 min) | 14.852 s (unas 4 h 8 min) |
+
+Exponente medido en la ejecución 1: `log₂(4,92) ≈ 2,30`. En la ejecución 2 la última duplicación da `log₂(6,07) ≈ 2,60`, lo que alargaría la estimación de 1.000.000 a varias horas más.
+
+**Conclusión sobre la estimación:** para 1.000.000 el resultado es un orden de magnitud: entre 1 hora y varias horas. Depende de la máquina y de cuánto crezca la lista `recurrentes`.
+
+**Decisión:** como la estimación de 100.000 es menor a 2 minutos, se ejecutó. **Resultado real: 58,4 s**, con 26.722 clientes recurrentes. Queda dentro del rango estimado (43 s a 75 s), en una sola ejecución.
+
+**No se ejecutó 1.000.000**, porque la estimación es de horas. Solo tiene la estimación.
+
+### Costo oculto: `recurrentes.includes`
+
+Instrumentación con los datos del generador en `n = 16.000`:
+
+- Pares revisados: 127.992.000.
+- Coincidencias de cliente (llamadas a `includes`): 23.966.
+- Pasos dentro de `includes`: 63.409.757.
+
+Es decir, `includes` agrega cerca de la mitad del trabajo del ciclo.
+
+**Peor caso:** `includes` se ejecuta en cada coincidencia de cliente, no solo la primera vez, porque la comprobación de `includes` va después de la igualdad. Cada llamada cuesta hasta `k` pasos, donde `k` es el tamaño de `recurrentes`. Con `m` coincidencias, el costo extra es O(m·k). En el peor caso, `m` se acerca a `n²/2` y `k` se acerca a `n`, y el total llega a O(n³). Por ejemplo, si un cliente tiene casi todas las ventas y muchos otros clientes ya están en la lista, cada coincidencia de ese cliente recorre una lista larga.
+
+En los datos típicos del generador, `k` crece con `n`, así que la función se comporta como O(n²) con un factor extra. En el peor caso teórico es O(n³).
+
+### Clasificación
+
+- **`clientesRecurrentes` con datos típicos: O(n²).** El ciclo doble domina.
+- **Peor caso: O(n³)**, por `includes` dentro del ciclo doble.
+
+### Conclusión para la gerente
+
+El reporte de clientes recurrentes compara cada venta con todas las demás, una por una. Con 100 ventas hace unas 5.000 comparaciones; con 16.000 hace unas 128 millones; con 100.000 hace unos 5.000 millones. Por eso el tiempo sube muy rápido: cada vez que el historial se duplica, el reporte tarda alrededor de cuatro veces más o más. Con el historial anual de unas 100.000 ventas tarda cerca de un minuto, y con un millón de ventas tardaría horas.
+
+La corrección es revisar cada venta una sola vez y llevar un registro de los clientes que ya se contaron. Eso debería reducir el tiempo a una fracción de segundo, pero hay que probarlo antes de darlo por hecho.
+
+
+**Qué generó Claude:**
+- `src/medir_recurrentes.js`: medición con `console.time` y `console.timeEnd`, tabla de tiempos y tabla de razones.
+- La traza de 5 ventas y la instrumentación de comparaciones y pasos de `includes`.
+- La estimación para 100.000 y 1.000.000, calculada a partir de las mediciones.
+- La ejecución real de 100.000 y su comparación con la estimación.
+- La conclusión para la gerente y esta sección de la bitácora.
+
+**Qué no hizo la IA:**
+- No escribió la función `clientesRecurrentes`; es el código del compañero, sin cambios.
+- No corrigió la función. Solo la diagnosticó.
+
+**Qué decidió el estudiante (o hay que confirmar):**
+- Los tamaños de la tabla (1.000 a 16.000).
+- El control con 8 clientes para separar el efecto de `n`.
+- La regla de ejecutar 100.000 solo si la estimación es menor a 2 minutos.
